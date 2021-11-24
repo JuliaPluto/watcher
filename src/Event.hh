@@ -2,11 +2,11 @@
 #define EVENT_H
 
 #include <string>
-#include <napi.h>
 #include <mutex>
 #include <map>
+#include <vector>
 
-using namespace Napi;
+// using namespace Napi;
 
 struct Event {
   std::string path;
@@ -14,13 +14,21 @@ struct Event {
   bool isDeleted;
   Event(std::string path) : path(path), isCreated(false), isDeleted(false) {}
 
-  Value toJS(const Env& env) {
-    EscapableHandleScope scope(env);
-    Object res = Object::New(env);
-    std::string type = isCreated ? "create" : isDeleted ? "delete" : "update";
-    res.Set(String::New(env, "path"), String::New(env, path.c_str()));
-    res.Set(String::New(env, "type"), String::New(env, type.c_str()));
-    return scope.Escape(res);
+  struct JLEvent {
+    const char *path;
+    size_t path_len;
+    bool isCreated;
+    bool isDeleted;
+  };
+
+  Event::JLEvent toJL() {
+    Event::JLEvent jlevent = JLEvent {
+      path.c_str(),
+      path.size(),
+      isCreated,
+      isDeleted,
+    };
+    return jlevent;
   }
 };
 
