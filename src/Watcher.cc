@@ -1,7 +1,6 @@
 #include "Watcher.hh"
 #include <unordered_set>
-
-using namespace Napi;
+#include <iostream>
 
 struct WatcherHash {
   std::size_t operator() (std::shared_ptr<Watcher> const &k) const {
@@ -17,8 +16,8 @@ struct WatcherCompare {
 
 static std::unordered_set<std::shared_ptr<Watcher>, WatcherHash, WatcherCompare> sharedWatchers;
 
-std::shared_ptr<Watcher> Watcher::getShared(std::string dir, std::unordered_set<std::string> ignorePaths, std::unordered_set<Glob> ignoreGlobs) {
-  std::shared_ptr<Watcher> watcher = std::make_shared<Watcher>(dir, ignorePaths, ignoreGlobs);
+std::shared_ptr<Watcher> Watcher::getShared(std::string dir, uv_async_t *handle, std::unordered_set<std::string> ignorePaths, std::unordered_set<Glob> ignoreGlobs) {
+  std::shared_ptr<Watcher> watcher = std::make_shared<Watcher>(dir, ignorePaths, ignoreGlobs, handle);
   auto found = sharedWatchers.find(watcher);
   if (found != sharedWatchers.end()) {
     return *found;
@@ -37,12 +36,12 @@ void removeShared(Watcher *watcher) {
   }
 }
 
-Watcher::Watcher(std::string dir, std::unordered_set<std::string> ignorePaths, std::unordered_set<Glob> ignoreGlobs)
+Watcher::Watcher(std::string dir, std::unordered_set<std::string> ignorePaths, std::unordered_set<Glob> ignoreGlobs, uv_async_t *async_handle)
   : mDir(dir),
     mIgnorePaths(ignorePaths),
     mIgnoreGlobs(ignoreGlobs),
     mWatched(false),
-    mAsync(NULL),
+    mAsync(async_handle), // We provide our own uv_async_t since Julia override the close callback
     mCallingCallbacks(false) {
       mDebounce = Debounce::getShared();
       mDebounce->add(this, [this] () {
@@ -94,17 +93,6 @@ void Watcher::triggerCallbacks() {
   }
 }
 
-Value Watcher::callbackEventsToJS(const Env& env) {
-  std::lock_guard<std::mutex> l(mCallbackEventsMutex);
-  EscapableHandleScope scope(env);
-  Array arr = Array::New(env, mCallbackEvents.size());
-  size_t currentEventIndex = 0;
-  for (auto eventIterator = mCallbackEvents.begin(); eventIterator != mCallbackEvents.end(); eventIterator++) {
-    arr.Set(currentEventIndex++, eventIterator->toJS(env));
-  }
-  return scope.Escape(arr);
-}
-
 // TODO: Doesn't this need some kind of locking?
 void Watcher::clearCallbacks() {
   mCallbacks.clear();
@@ -117,17 +105,16 @@ void Watcher::fireCallbacks(uv_async_t *handle) {
   watcher->mCallbacksIterator = watcher->mCallbacks.begin();
   while (watcher->mCallbacksIterator != watcher->mCallbacks.end()) {
     auto it = watcher->mCallbacksIterator;
-    HandleScope scope(it->Env());
-    auto err = watcher->mError.size() > 0 ? Error::New(it->Env(), watcher->mError).Value() : it->Env().Null();
-    auto events = watcher->callbackEventsToJS(it->Env());
 
-    it->MakeCallback(it->Env().Global(), std::initializer_list<napi_value>{err, events});
-    // Throw errors from the callback as fatal exceptions
-    // If we don't handle these node segfaults...
-    if (it->Env().IsExceptionPending()) {
-      Napi::Error err = it->Env().GetAndClearPendingException();
-      napi_fatal_exception(it->Env(), err.Value());
+    auto callback = *it;
+    size_t n_events = watcher->mCallbackEvents.size();
+    std::vector<Event::JLEvent> jl_events(n_events);
+    for (auto it = watcher->mCallbackEvents.begin(); it != watcher->mCallbackEvents.end(); it++) {
+      Event::JLEvent jl_event = it->toJL();
+      jl_events.push_back(std::move(jl_event));
     }
+
+    callback(jl_events.data(), n_events); // call callback
 
     // If the iterator was changed, then the callback trigged an unwatch.
     // The iterator will have been set to the next valid callback.
@@ -150,13 +137,32 @@ void Watcher::fireCallbacks(uv_async_t *handle) {
   }
 }
 
-bool Watcher::watch(FunctionReference callback) {
+void Watcher::toWatcherEvents(watcher_events_t *watcher_events) {
+  Event::JLEvent *jl_events = new Event::JLEvent[mCallbackEvents.size()];
+
+  int i = 0;
+  for (auto it = mCallbackEvents.begin(); it != mCallbackEvents.end(); it++) {
+    jl_events[i] = it->toJL();
+    i++;
+  }
+
+  watcher_events->n_events = mCallbackEvents.size();
+  watcher_events->events = jl_events;
+}
+
+bool Watcher::watch(callback_func callback, uv_async_t *handle) {
   std::unique_lock<std::mutex> lk(mMutex);
   auto res = mCallbacks.insert(std::move(callback));
   if (res.second && !mWatched) {
-    mAsync = new uv_async_t;
-    mAsync->data = (void *)this;
-    uv_async_init(uv_default_loop(), mAsync, Watcher::fireCallbacks);
+    if (mAsync == nullptr) {
+      if (handle != nullptr) {
+        mAsync = handle;
+      } else {
+        mAsync = new uv_async_t;
+        mAsync->data = (void *)this;
+        uv_async_init(jl_global_event_loop(), mAsync, Watcher::fireCallbacks);
+      }
+    }
     mWatched = true;
     return true;
   }
@@ -164,12 +170,12 @@ bool Watcher::watch(FunctionReference callback) {
   return false;
 }
 
-bool Watcher::unwatch(Function callback) {
+bool Watcher::unwatch(callback_func callback) {
   std::unique_lock<std::mutex> lk(mMutex);
 
   bool removed = false;
   for (auto it = mCallbacks.begin(); it != mCallbacks.end(); it++) {
-    if (it->Value() == callback) {
+    if (*it == callback) {
       mCallbacksIterator = mCallbacks.erase(it);
       removed = true;
       break;
@@ -188,7 +194,7 @@ void Watcher::unref() {
   if (mCallbacks.size() == 0 && !mCallingCallbacks) {
     if (mWatched) {
       mWatched = false;
-      uv_close((uv_handle_t *)mAsync, Watcher::onClose);
+      // uv_close((uv_handle_t *)mAsync, Watcher::onClose);
     }
 
     removeShared(this);
@@ -208,7 +214,7 @@ bool Watcher::isIgnored(std::string path) {
   }
 
   auto basePath = mDir + DIR_SEP;
-  
+
   if (path.rfind(basePath, 0) != 0) {
     return false;
   }
