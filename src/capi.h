@@ -24,7 +24,7 @@ void watcher_options_set_backend(Options *options, const char *backend);
 void watcher_delete_options(Options *options);
 
 watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot);
-watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot, callback_func callback);
+watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot, watcher_events_t *watcher_events);
 
 watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *async_handle, Options *options);
 watcher_error_t *watcher_unsubscribe(const char *dir);
