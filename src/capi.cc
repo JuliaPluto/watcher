@@ -38,7 +38,7 @@ watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot) {
   return nullptr;
 }
 
-watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot, callback_func callback) {
+watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot, watcher_events_t *watcher_events) {
   std::unordered_set<std::string> ignores;
   std::shared_ptr<Watcher> watcher = Watcher::getShared(
     std::string(dir),
@@ -52,12 +52,16 @@ watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
   backend->getEventsSince(*watcher, &snapshot_path);
 
   std::vector<Event> events = watcher->mEvents.getEvents();
-  std::vector<Event::JLEvent> jl_events(events.size());
+
+  Event::JLEvent *jl_events = new Event::JLEvent[events.size()];
+  int i = 0;
   for (auto it = events.begin(); it != events.end(); it++) {
-    jl_events.push_back(it->toJL());
+    jl_events[i] = it->toJL();
+    i++;
   }
 
-  callback(jl_events.data(), jl_events.size());
+  watcher_events->n_events = events.size();
+  watcher_events->events = jl_events;
 
   watcher->unref();
   backend->unref();
