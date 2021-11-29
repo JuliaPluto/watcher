@@ -5,8 +5,7 @@
 #include <mutex>
 #include <map>
 #include <vector>
-
-// using namespace Napi;
+#include <cstring>
 
 struct Event {
   std::string path;
@@ -22,8 +21,11 @@ struct Event {
   };
 
   Event::JLEvent toJL() {
+    char *buf = new char[path.size() + 1];
+    strcpy(buf, path.c_str());
+
     Event::JLEvent jlevent = JLEvent {
-      path.c_str(),
+      buf,
       path.size(),
       isCreated,
       isDeleted,

@@ -77,9 +77,9 @@ void FSEventsCallback(
     }
 
     auto ignoredFlags = IGNORED_FLAGS;
-    if (__builtin_available(macOS 10.13, *)) {
-      ignoredFlags |= kFSEventStreamEventFlagItemCloned;
-    }
+    // if (__builtin_available(macOS 10.13, *)) {
+    //   ignoredFlags |= kFSEventStreamEventFlagItemCloned;
+    // }
 
     // If we don't care about any of the flags that are set, ignore this event.
     if ((eventFlags[i] & ~ignoredFlags) == 0) {
