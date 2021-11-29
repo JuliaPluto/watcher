@@ -3,6 +3,10 @@
 #include <unistd.h>
 #include "InotifyBackend.hh"
 
+#ifndef IN_EXCL_UNLINK
+#define IN_EXCL_UNLINK 0
+#endif
+
 #define INOTIFY_MASK \
   IN_ATTRIB | IN_CREATE | IN_DELETE | \
   IN_DELETE_SELF | IN_MODIFY | IN_MOVE_SELF | IN_MOVED_FROM | \

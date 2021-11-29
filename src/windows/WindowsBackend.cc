@@ -9,6 +9,10 @@
 #define NETWORK_BUF_SIZE 64 * 1024
 #define CONVERT_TIME(ft) ULARGE_INTEGER{ft.dwLowDateTime, ft.dwHighDateTime}.QuadPart
 
+#ifndef __in
+#define __in
+#endif
+
 void BruteForceBackend::readTree(Watcher &watcher, std::shared_ptr<DirTree> tree) {
   std::stack<std::string> directories;
 
@@ -64,7 +68,7 @@ void WindowsBackend::start() {
 WindowsBackend::~WindowsBackend() {
   // Mark as stopped, and queue a noop function in the thread to break the loop
   mRunning = false;
-  QueueUserAPC([](__in ULONG_PTR) {}, mThread.native_handle(), (ULONG_PTR)this);
+  QueueUserAPC([](__in ULONG_PTR) {}, (void*)mThread.native_handle(), (ULONG_PTR)this);
 }
 
 class Subscription {
@@ -269,7 +273,7 @@ void WindowsBackend::subscribe(Watcher &watcher) {
   bool success = QueueUserAPC([](__in ULONG_PTR ptr) {
     Subscription *sub = (Subscription *)ptr;
     sub->run();
-  }, mThread.native_handle(), (ULONG_PTR)sub);
+  }, (void*)mThread.native_handle(), (ULONG_PTR)sub);
 
   if (!success) {
     throw std::runtime_error("Unable to queue APC");
