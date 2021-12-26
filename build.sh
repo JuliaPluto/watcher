@@ -36,15 +36,17 @@ elif [[ $OSTYPE == "Linux" ]]; then
     src/unix/legacy.cc \
     $CXXFLAGS -o $BUILDDIR/libwatcher.so -shared -fPIC \
     -DINOTIFY
-  
+
 else # Windows
 
+  # TODO: Make sure to link with libuv.dll.a and not libuv.dll
+  LDFLAGS="${LDFLAGS} ${prefix}/lib/libuv.dll.a"
   $CXX $CCSRC \
     src/windows/WindowsBackend.cc \
     src/windows/win_utils.cc \
     $CXXFLAGS $LDFLAGS -o $BUILDDIR/libwatcher.dll -shared \
-    -DWINDOWS -Wl,-no-undefined,--out-implib,$BUILDDIR/libwatcher.dll.a 
+    -DWINDOWS -Wl,-no-undefined
 
 fi
 
-echo "done building hey"
+echo "done building"
