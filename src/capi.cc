@@ -6,6 +6,8 @@ Options *watcher_new_options() {
   return options;
 }
 
+void dummy_callback(Event::JLEvent *, size_t) {}
+
 void watcher_options_add_ignore(Options *options, const char *ignore) {
   options->addIgnore(ignore);
 }
@@ -14,18 +16,12 @@ void watcher_options_set_backend(Options *options, const char *backend) {
   options->setBackend(backend);
 }
 
-void watcher_delete_options(Options *options) {
-  delete options;
-}
-
+void watcher_delete_options(Options *options) { delete options; }
 
 watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot) {
   std::unordered_set<std::string> ignores;
-  std::shared_ptr<Watcher> watcher = Watcher::getShared(
-    std::string(dir),
-    nullptr,
-    ignores
-  );
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), nullptr, ignores);
 
   std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
 
@@ -38,13 +34,11 @@ watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot) {
   return nullptr;
 }
 
-watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot, watcher_events_t *watcher_events) {
+watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
+                                          watcher_events_t *watcher_events) {
   std::unordered_set<std::string> ignores;
-  std::shared_ptr<Watcher> watcher = Watcher::getShared(
-    std::string(dir),
-    nullptr,
-    ignores
-  );
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), nullptr, ignores);
 
   std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
 
@@ -69,13 +63,11 @@ watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
   return nullptr;
 }
 
-watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *handle, Options *options) {
+watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *handle,
+                                   Options *options) {
   std::unordered_set<std::string> ignores = std::unordered_set<std::string>();
-  std::shared_ptr<Watcher> watcher = Watcher::getShared(
-    std::string(dir),
-    handle,
-    ignores
-  );
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), handle, ignores);
 
   std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
   backend->watch(*watcher);
@@ -86,11 +78,8 @@ watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *handle, Options 
 
 watcher_error_t *watcher_unsubscribe(const char *dir) {
   std::unordered_set<std::string> ignores;
-  std::shared_ptr<Watcher> watcher = Watcher::getShared(
-    std::string(dir),
-    nullptr,
-    ignores
-  );
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), nullptr, ignores);
 
   std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
   bool shouldUnwatch = watcher->unwatch(&dummy_callback);
@@ -102,17 +91,18 @@ watcher_error_t *watcher_unsubscribe(const char *dir) {
   return nullptr;
 }
 
-watcher_error_t *watcher_watcher_get_events(Watcher *watcher, watcher_events_t *watcher_events) {
+watcher_error_t *watcher_watcher_get_events(Watcher *watcher,
+                                            watcher_events_t *watcher_events) {
   watcher->toWatcherEvents(watcher_events);
   return nullptr;
 }
 
 Watcher *watcher_get_watcher(const char *dir, Options *options) {
-  std::shared_ptr<Watcher> watcher = Watcher::getShared(
-    std::string(dir),
-    nullptr,
-    options->ignores
-  );
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), nullptr, options->ignores);
 
-  return &(*watcher);
+  // Unwrap from shared_ptr, the shared_ptr is still held
+  // in the global watcher map so it should not be freed.
+  Watcher *ptr = &(*watcher);
+  return ptr;
 }

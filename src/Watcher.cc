@@ -159,7 +159,7 @@ bool Watcher::watch(callback_func callback, uv_async_t *handle) {
       } else {
         mAsync = new uv_async_t;
         mAsync->data = (void *)this;
-        uv_async_init(jl_global_event_loop(), mAsync, Watcher::fireCallbacks);
+        uv_async_init(uv_default_loop(), mAsync, Watcher::fireCallbacks);
       }
     }
     mWatched = true;

@@ -20,10 +20,6 @@ typedef struct watcher_events {
   Event::JLEvent *events;
 } watcher_events_t;
 
-extern "C" {
-uv_loop_t *jl_global_event_loop();
-}
-
 struct Watcher {
   std::string mDir;
   std::unordered_set<std::string> mIgnore;
