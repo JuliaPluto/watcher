@@ -39,7 +39,6 @@ elif [[ $OSTYPE == "Linux" ]]; then
 
 else # Windows
 
-  # TODO: Make sure to link with libuv.dll.a and not libuv.dll
   LDFLAGS="${LDFLAGS} ${prefix}/lib/libuv.dll.a"
   $CXX $CCSRC \
     src/windows/WindowsBackend.cc \

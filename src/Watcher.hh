@@ -46,6 +46,8 @@ struct Watcher {
   bool isIgnored(std::string path);
 
   static std::shared_ptr<Watcher> getShared(std::string dir, uv_async_t *handle, std::unordered_set<std::string> ignorePaths, std::unordered_set<Glob> ignoreGlobs);
+  static void deleteShared(std::shared_ptr<Watcher> watcher);
+
   void toWatcherEvents(watcher_events_t *events);
 
 private:
