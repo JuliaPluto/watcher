@@ -16,6 +16,13 @@ struct WatcherCompare {
 
 static std::unordered_set<std::shared_ptr<Watcher>, WatcherHash, WatcherCompare> sharedWatchers;
 
+void Watcher::deleteShared(std::shared_ptr<Watcher> watcher) {
+  auto found = sharedWatchers.find(watcher);
+  if (found != sharedWatchers.end()) {
+    sharedWatchers.erase(found);
+  }
+}
+
 std::shared_ptr<Watcher> Watcher::getShared(std::string dir, uv_async_t *handle, std::unordered_set<std::string> ignore) {
   std::shared_ptr<Watcher> watcher = std::make_shared<Watcher>(dir, ignore, handle);
   auto found = sharedWatchers.find(watcher);
@@ -126,7 +133,7 @@ void Watcher::fireCallbacks(uv_async_t *handle) {
   watcher->mCallingCallbacks = false;
 
   if (watcher->mError.size() > 0) {
-    watcher->clearCallbacks();
+    // watcher->clearCallbacks();
   }
 
   if (watcher->mCallbacks.size() == 0) {

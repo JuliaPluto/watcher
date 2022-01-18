@@ -14,14 +14,14 @@ struct Event {
   Event(std::string path) : path(path), isCreated(false), isDeleted(false) {}
 
   struct JLEvent {
-    const char *path;
+    char *path;
     size_t path_len;
     bool isCreated;
     bool isDeleted;
   };
 
   Event::JLEvent toJL() {
-    char *buf = new char[path.size() + 1];
+    char *buf = new char[path.size()];
     strcpy(buf, path.c_str());
 
     Event::JLEvent jlevent = JLEvent {

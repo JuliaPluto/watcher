@@ -86,6 +86,7 @@ watcher_error_t *watcher_unsubscribe(const char *dir) {
 
   if (shouldUnwatch) {
     backend->unwatch(*watcher);
+    Watcher::deleteShared(watcher);
   }
 
   return nullptr;
