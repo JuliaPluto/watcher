@@ -18,7 +18,7 @@ CCSRC="src/capi.cc \
 CXXFLAGS=${CXXFLAGS-}
 
 # TODO: enable watchman support ?
-CXXFLAGS="$CXXFLAGS -std=c++11 -Iinclude -DBRUTE_FORCE"
+CXXFLAGS="$CXXFLAGS -Wall -std=c++11 -Iinclude -DBRUTE_FORCE"
 
 echo "Building for $OSTYPE"
 

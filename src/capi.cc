@@ -18,12 +18,14 @@ void watcher_options_set_backend(Options *options, const char *backend) {
 
 void watcher_delete_options(Options *options) { delete options; }
 
-watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot) {
-  std::unordered_set<std::string> ignores;
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, ignores);
+size_t watcher_watcher_handle_sizeof() { return sizeof(watcher_handle_t); }
 
-  std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
+watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot,
+                                        Options *options) {
+  std::shared_ptr<Watcher> watcher =
+      Watcher::getShared(std::string(dir), nullptr, options->ignores);
+
+  std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
 
   std::string snapshot_path(snapshot);
   backend->writeSnapshot(*watcher, &snapshot_path);
@@ -35,12 +37,12 @@ watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot) {
 }
 
 watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
-                                          watcher_events_t *watcher_events) {
-  std::unordered_set<std::string> ignores;
+                                          watcher_events_t *watcher_events,
+                                          Options *options) {
   std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, ignores);
+      Watcher::getShared(std::string(dir), nullptr, options->ignores);
 
-  std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
+  std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
 
   std::string snapshot_path(snapshot);
   backend->getEventsSince(*watcher, &snapshot_path);
@@ -64,24 +66,24 @@ watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
 }
 
 watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *handle,
-                                   Options *options) {
-  std::unordered_set<std::string> ignores = std::unordered_set<std::string>();
+                                   Options *options,
+                                   watcher_handle_t *watcher_handle) {
   std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), handle, ignores);
+      Watcher::getShared(std::string(dir), handle, options->ignores);
 
-  std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
+  std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
   backend->watch(*watcher);
   watcher->watch(&dummy_callback, handle);
+
+  watcher_handle->watcher = watcher;
+  watcher_handle->backend = backend;
 
   return nullptr;
 }
 
-watcher_error_t *watcher_unsubscribe(const char *dir) {
-  std::unordered_set<std::string> ignores;
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, ignores);
-
-  std::shared_ptr<Backend> backend = Backend::getShared(DEFAULT_BACKEND);
+watcher_error_t *watcher_unsubscribe(watcher_handle_t *handle) {
+  std::shared_ptr<Watcher> watcher = handle->watcher;
+  std::shared_ptr<Backend> backend = handle->backend;
   bool shouldUnwatch = watcher->unwatch(&dummy_callback);
 
   if (shouldUnwatch) {
@@ -92,18 +94,20 @@ watcher_error_t *watcher_unsubscribe(const char *dir) {
   return nullptr;
 }
 
-watcher_error_t *watcher_watcher_get_events(Watcher *watcher,
+watcher_error_t *watcher_watcher_get_events(watcher_handle_t *watcher_handle,
                                             watcher_events_t *watcher_events) {
-  watcher->toWatcherEvents(watcher_events);
+  watcher_handle->watcher->toWatcherEvents(watcher_events);
   return nullptr;
 }
 
-Watcher *watcher_get_watcher(const char *dir, Options *options) {
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, options->ignores);
+void watcher_delete_events(watcher_events_t *watcher_events) {
+  if (watcher_events == nullptr || watcher_events->events == nullptr)
+    return;
 
-  // Unwrap from shared_ptr, the shared_ptr is still held
-  // in the global watcher map so it should not be freed.
-  Watcher *ptr = &(*watcher);
-  return ptr;
+  for (size_t i = 0; i < watcher_events->n_events; ++i) {
+    char *path = watcher_events->events[i].path;
+    delete path;
+  }
+
+  delete watcher_events->events;
 }
