@@ -1,6 +1,10 @@
-# @parcel/watcher
+# watcher
 
-A native C++ Node module for querying and subscribing to filesystem events. Used by [Parcel 2](https://github.com/parcel-bundler/parcel).
+A native C++ &nbsp;
+    <a href="https://julialang.org">
+        <img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em">
+        Julia
+    </a> module for querying and subscribing to filesystem events. Ported over from the Javascript library [parcel-bundler/watcher](https://github.com/parcel-bundler/parcel) which powers the [parcel](https://github.com/parcel-bundler/parcel) Javascript bundler.
 
 ## Features
 
@@ -13,25 +17,7 @@ A native C++ Node module for querying and subscribing to filesystem events. Used
 
 ## Example
 
-```javascript
-const watcher = require('@parcel/watcher');
-const path = require('path');
-
-// Subscribe to events
-let subscription = await watcher.subscribe(process.cwd(), (err, events) => {
-  console.log(events);
-});
-
-// later on...
-await subscription.unsubscribe();
-
-// Get events since some saved snapshot in the past
-let snapshotPath = path.join(process.cwd(), 'snapshot.txt');
-let events = await watcher.getEventsSince(process.cwd(), snapshotPath);
-
-// Save a snapshot for later
-await watcher.writeSnapshot(process.cwd(), snapshotPath);
-```
+See [BetterFileWatching.jl](https://github.com/JuliaPluto/BetterFileWatching.jl).
 
 ## Watching
 
@@ -41,21 +27,16 @@ Events are throttled and coalesced for performance during large changes like `gi
 
 Only one notification will be emitted per file. For example, if a file was both created and updated since the last event, you'll get only a `create` event. If a file is both created and deleted, you will not be notifed of that file. Renames cause two events: a `delete` for the old name, and a `create` for the new name.
 
-```javascript
-let subscription = await watcher.subscribe(process.cwd(), (err, events) => {
-  console.log(events);
-});
-```
+Events have three properties:
 
-Events have two properties:
-
-- `type` - the event type: `create`, `update`, or `delete`.
 - `path` - the absolute realpath to the file.
+- `is_created` - whether this is a creation event
+- `is_deleted` - whether this is deleted (this is modified is neither is true).
 
 To unsubscribe from change notifications, call the `unsubscribe` method on the returned subscription object.
 
 ```javascript
-await subscription.unsubscribe();
+unsubscribe(watcher);
 ```
 
 `@parcel/watcher` has the following watcher backends, listed in priority order:
@@ -74,13 +55,13 @@ You can specify the exact backend you wish to use by passing the `backend` optio
 In order to query for historical changes, you first need a previous snapshot to compare to. This can be saved to a file with the `writeSnapshot` function, e.g. just before your program exits.
 
 ```javascript
-await watcher.writeSnapshot(dirPath, snapshotPath);
+write_snapshot(dirPath, snapshotPath)
 ```
 
-When your program starts up, you can query for changes that have occurred since that snapshot using the `getEventsSince` function.
+When your program starts up, you can query for changes that have occurred since that snapshot using the `get_events_since` function.
 
 ```javascript
-let events = await watcher.getEventsSince(dirPath, snapshotPath);
+get_event_since(dirPath, snapshotPath)
 ```
 
 The events returned are exactly the same as the events that would be passed to the `subscribe` callback (see above).
@@ -105,13 +86,9 @@ All of the APIs in `@parcel/watcher` support the following options, which are pa
 - `ignore` - an array of paths to ignore. They can be either files or directories. No events will be emitted about these files or directories or their children.
 - `backend` - the name of an explicitly chosen backend to use. Allowed options are `"fs-events"`, `"watchman"`, `"inotify"`, `"windows"`, or `"brute-force"` (only for querying). If the specified backend is not available on the current platform, the default backend will be used instead.
 
-## Who is using this?
+## Parcel/Javascript version
 
-* [Parcel 2](https://parceljs.org/)
-* [VSCode](https://code.visualstudio.com/updates/v1_62#_file-watching-changes)
-* [Tailwind CSS Intellisense](https://github.com/tailwindlabs/tailwindcss-intellisense)
-* [Gatsby Cloud](https://twitter.com/chatsidhartha/status/1435647412828196867)
-* [Nx](https://nx.dev)
+This repository is built on the [awesome work](https://github.com/parcel-bundler/watcher) from the parcel bundler team.
 
 ## License
 
