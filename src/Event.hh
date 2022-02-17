@@ -21,7 +21,7 @@ struct Event {
   };
 
   Event::JLEvent toJL() {
-    char *buf = new char[path.size()];
+    char *buf = new char[path.size() + 1];
     strcpy(buf, path.c_str());
 
     Event::JLEvent jlevent = JLEvent {
