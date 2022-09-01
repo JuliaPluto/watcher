@@ -18,7 +18,7 @@ CCSRC="src/capi.cc \
 CXXFLAGS=${CXXFLAGS-}
 
 # TODO: enable watchman support ?
-CXXFLAGS="$CXXFLAGS -Wall -std=c++11 -Iinclude -DBRUTE_FORCE"
+CXXFLAGS="$CXXFLAGS -std=c++11 -Wall -Iinclude -DBRUTE_FORCE"
 
 echo "Building for $OSTYPE"
 
@@ -40,9 +40,14 @@ elif [[ $OSTYPE == "Linux" ]]; then
 else # Windows
 
   LDFLAGS="${LDFLAGS} ${prefix}/lib/libuv.dll.a"
+
+  echo "LDFLAGS = $LDFLAGS"
+
+  # building with debug info is: -g
   $CXX $CCSRC \
     src/windows/WindowsBackend.cc \
     src/windows/win_utils.cc \
+    -lwinpthread -lpthread \
     $CXXFLAGS $LDFLAGS -o $BUILDDIR/libwatcher.dll -shared \
     -DWINDOWS -Wl,-no-undefined
 
