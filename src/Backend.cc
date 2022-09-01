@@ -77,6 +77,13 @@ void Backend::run() {
   mThread = std::thread([this] () {
     try {
       start();
+
+#ifdef HANDLE
+      DWORD thread_id = GetCurrentThreadId();
+      mHandle = OpenThread(THREAD_ALL_ACCESS, false, thread_id);
+      // mHandle = GetCurrentThread();
+#endif
+
     } catch (std::exception &err) {
       handleError(err);
     }
@@ -96,6 +103,12 @@ void Backend::start() {
 }
 
 Backend::~Backend() {
+#ifdef HANDLE
+  if (mHandle != nullptr) {
+      CloseHandle(mHandle);
+  }
+#endif
+
   // Wait for thread to stop
   if (mThread.joinable()) {
     // If the backend is being destroyed from the thread itself, detach, otherwise join.
