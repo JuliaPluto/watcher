@@ -1,3 +1,7 @@
+```
+CXX="zig c++ -target x86_64-windows-gnu" ./build.sh
+```
+
 # watcher
 
 A native C++ &nbsp;

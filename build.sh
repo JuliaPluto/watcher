@@ -5,7 +5,8 @@ BUILDDIR=build
 rm -r $BUILDDIR/
 mkdir -p $BUILDDIR
 
-OSTYPE=$(uname)
+# OSTYPE=$(uname)
+OSTYPE=windows
 
 CXX=${CXX-g++}
 CCSRC="src/capi.cc \
@@ -39,17 +40,17 @@ elif [[ $OSTYPE == "Linux" ]]; then
 
 else # Windows
 
-  LDFLAGS="${LDFLAGS} ${prefix}/lib/libuv.dll.a"
+  LDFLAGS="${LDFLAGS} ./lib/libuv.dll.a"
 
   echo "LDFLAGS = $LDFLAGS"
 
   # building with debug info is: -g
+    # -lwinpthread
   $CXX $CCSRC \
     src/windows/WindowsBackend.cc \
     src/windows/win_utils.cc \
-    -lwinpthread -lpthread \
     $CXXFLAGS $LDFLAGS -o $BUILDDIR/libwatcher.dll -shared \
-    -DWINDOWS -Wl,-no-undefined
+    -DWINDOWS #-Wl,-no-undefined
 
 fi
 

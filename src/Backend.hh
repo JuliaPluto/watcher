@@ -27,9 +27,6 @@ public:
 
   std::mutex mMutex;
   std::thread mThread;
-#ifdef HANDLE
-  HANDLE mHandle = nullptr;
-#endif
 private:
   std::unordered_set<Watcher *> mSubscriptions;
   Signal mStartedSignal;

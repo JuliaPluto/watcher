@@ -13,6 +13,7 @@ public:
   void unsubscribe(Watcher &watcher) override;
 private:
   bool mRunning;
+  HANDLE mHandle;
 };
 
 #endif
