@@ -22,8 +22,8 @@ size_t watcher_watcher_handle_sizeof() { return sizeof(watcher_handle_t); }
 
 watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot,
                                         Options *options) {
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, options->ignores);
+  std::shared_ptr<Watcher> watcher = Watcher::getShared(
+      std::string(dir), nullptr, options->ignores, options->ignoreGlobs);
 
   std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
 
@@ -39,8 +39,8 @@ watcher_error_t *watcher_write_snapshot(const char *dir, const char *snapshot,
 watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
                                           watcher_events_t *watcher_events,
                                           Options *options) {
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), nullptr, options->ignores);
+  std::shared_ptr<Watcher> watcher = Watcher::getShared(
+      std::string(dir), nullptr, options->ignores, options->ignoreGlobs);
 
   std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
 
@@ -68,8 +68,8 @@ watcher_error_t *watcher_get_events_since(const char *dir, const char *snapshot,
 watcher_error_t *watcher_subscribe(const char *dir, uv_async_t *handle,
                                    Options *options,
                                    watcher_handle_t *watcher_handle) {
-  std::shared_ptr<Watcher> watcher =
-      Watcher::getShared(std::string(dir), handle, options->ignores);
+  std::shared_ptr<Watcher> watcher = Watcher::getShared(
+      std::string(dir), handle, options->ignores, options->ignoreGlobs);
 
   std::shared_ptr<Backend> backend = Backend::getShared(options->backend);
   backend->watch(*watcher);

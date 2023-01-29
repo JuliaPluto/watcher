@@ -14,6 +14,11 @@ void Options::addIgnore(const char *ignore) {
   this->ignores.emplace(str_ignore);
 }
 
+void Options::addIgnoreGlob(const char *glob) {
+    auto str_glob = std::string(glob);
+    this->ignoreGlobs.emplace(str_glob);
+}
+
 void Options::setBackend(const char *backend) {
   if (this->backend != nullptr) {
     delete this->backend;

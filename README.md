@@ -1,4 +1,6 @@
 ```
+wget https://github.com/JuliaBinaryWrappers/LibUV_jll.jl/releases/download/LibUV-v2.0.1%2B13/LibUV.v2.0.1.x86_64-w64-mingw32.tar.gz
+tar -xvf LibUV.v2.0.1.x86_64-w64-mingw32.tar.gz
 CXX="zig c++ -target x86_64-windows-gnu" ./build.sh
 ```
 

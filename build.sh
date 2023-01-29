@@ -10,6 +10,7 @@ OSTYPE=windows
 
 CXX=${CXX-g++}
 CCSRC="src/capi.cc \
+       src/Glob.cc \
        src/Watcher.cc \
        src/Options.cc \
        src/Backend.cc \
